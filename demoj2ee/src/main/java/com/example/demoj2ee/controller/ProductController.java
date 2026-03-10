@@ -1,58 +1,115 @@
 package com.example.demoj2ee.controller;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import com.example.demoj2ee.model.Product;
+import com.example.demoj2ee.service.CategoryService;
 import com.example.demoj2ee.service.ProductService;
 
-@RestController
+import jakarta.validation.Valid;
+
+@Controller
 @RequestMapping("/products")
 public class ProductController {
 
   private final ProductService productService;
+  private final CategoryService categoryService;
 
-  public ProductController(ProductService productService) {
+  @Autowired
+  public ProductController(ProductService productService, CategoryService categoryService) {
     this.productService = productService;
+    this.categoryService = categoryService;
   }
 
   @GetMapping
-  public List<Product> findAll() {
-    return productService.findAll();
+  public String list(Model model) {
+    List<Product> products = productService.findAll();
+    Map<String, String> categoryMap = categoryService.getNameMap();
+    model.addAttribute("products", products);
+    model.addAttribute("categoryMap", categoryMap);
+    return "products/list";
   }
 
-  @GetMapping("/{id}")
-  public ResponseEntity<Product> findById(@PathVariable String id) {
-    Optional<Product> product = productService.findById(id);
-    return product.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
+  @GetMapping("/new")
+  public String showCreateForm(Model model) {
+    prepareForm(model, new Product(), "/products", "Them moi");
+    return "products/create";
   }
 
   @PostMapping
-  public ResponseEntity<Product> create(@RequestBody Product product) {
-    Product saved = productService.create(product);
-    return ResponseEntity.status(HttpStatus.CREATED).body(saved);
+  public String create(
+      @Valid @ModelAttribute("product") Product product,
+      BindingResult bindingResult,
+      Model model) {
+    if (bindingResult.hasErrors()) {
+      prepareForm(model, product, "/products", "Them moi");
+      return "products/create";
+    }
+    productService.create(product);
+    return "redirect:/products";
   }
 
-  @PutMapping("/{id}")
-  public ResponseEntity<Product> update(@PathVariable String id, @RequestBody Product input) {
-    Optional<Product> updated = productService.update(id, input);
-    return updated.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
+  @GetMapping("/{id}/edit")
+  public String showEditForm(@PathVariable String id, Model model) {
+    Optional<Product> product = productService.findById(id);
+    if (product.isEmpty()) {
+      return "redirect:/products";
+    }
+    prepareForm(model, product.get(), "/products/" + id, "Cap nhat");
+    return "products/edit";
   }
 
-  @DeleteMapping("/{id}")
-  public ResponseEntity<Void> delete(@PathVariable String id) {
-    boolean removed = productService.delete(id);
-    return removed ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
+  @PostMapping("/{id}")
+  public String update(
+      @PathVariable String id,
+      @Valid @ModelAttribute("product") Product product,
+      BindingResult bindingResult,
+      Model model) {
+    if (bindingResult.hasErrors()) {
+      prepareForm(model, product, "/products/" + id, "Cap nhat");
+      return "products/edit";
+    }
+    Optional<Product> updated = productService.update(id, product);
+    if (updated.isEmpty()) {
+      return "redirect:/products";
+    }
+    return "redirect:/products";
+  }
+
+  @PostMapping("/{id}/delete")
+  public String delete(@PathVariable String id) {
+    productService.delete(id);
+    return "redirect:/products";
+  }
+
+  @GetMapping("/{id}/delete")
+  public String confirmDelete(@PathVariable String id, Model model) {
+    Optional<Product> product = productService.findById(id);
+    if (product.isEmpty()) {
+      return "redirect:/products";
+    }
+    Map<String, String> categoryMap = categoryService.getNameMap();
+    model.addAttribute("product", product.get());
+    model.addAttribute("categoryMap", categoryMap);
+    return "products/delete";
+  }
+
+  private void prepareForm(Model model, Product product, String action, String submitLabel) {
+    model.addAttribute("product", product);
+    model.addAttribute("categories", categoryService.findAll());
+    model.addAttribute("formAction", action);
+    model.addAttribute("submitLabel", submitLabel);
   }
 }

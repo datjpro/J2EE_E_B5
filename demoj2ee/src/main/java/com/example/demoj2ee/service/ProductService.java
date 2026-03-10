@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import com.example.demoj2ee.model.Product;
 import com.example.demoj2ee.repository.ProductRepository;
@@ -13,6 +14,7 @@ public class ProductService {
 
   private final ProductRepository productRepository;
 
+  @Autowired
   public ProductService(ProductRepository productRepository) {
     this.productRepository = productRepository;
   }
@@ -37,6 +39,8 @@ public class ProductService {
     Product product = existing.get();
     product.setName(input.getName());
     product.setPrice(input.getPrice());
+    product.setCategoryId(input.getCategoryId());
+    product.setImageUrl(input.getImageUrl());
     return Optional.of(productRepository.save(product));
   }
 
