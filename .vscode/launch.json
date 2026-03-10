@@ -1,0 +1,14 @@
+{
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Spring Boot-Demoj2eeApplication<demoj2ee>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "com.example.demoj2ee.Demoj2eeApplication",
+            "projectName": "demoj2ee",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
+        }
+    ]
+}
